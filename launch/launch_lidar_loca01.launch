@@ -1,0 +1,10 @@
+<launch>
+    <node pkg="LidarLoca" type="lidar_process_node" name="lidar_process_node"></node>
+    <node pkg="LidarLoca" type="lidar_odometry_node" name="lidar_odom_node"></node>
+    <!-- <node pkg="LidarLoca" type="lidar_mapping_node" name="lidar_mapping_node"></node> -->
+
+    <!-- rviz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find LidarLoca)/cfg/lidar_loca.rviz" required="true"></node>
+
+
+</launch>
