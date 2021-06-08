@@ -12,15 +12,15 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ") # -g
 set (CMAKE_VERBOSE_MAKEFILE ON)
 
 # 调试的时候打开下面
-set(CMAKE_BUILD_TYPE "Debug")    # 调式开关
+set(CMAKE_BUILD_TYPE "Release")    # 调式开关
 
 IF (CMAKE_BUILD_TYPE STREQUAL Debug)     #   用IF控制，可以实现Release版本不输出debug信息
     ADD_DEFINITIONS(-DDEBUG)             #               不知道为什么DEBUG必须写成-DDEBUG，谁来解释一下吧
 ENDIF()
 
 IF(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O3")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O3")
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
 

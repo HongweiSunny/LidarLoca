@@ -180,9 +180,9 @@ public:
         subLaserCloudFullRes = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_3", 100, &LidarMapping::laserCloudFullResHandler, this);
 
         // pub
-        pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surround", 100);
+        pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>("/surround_sub_map", 100);
 
-        pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_map", 100);
+        pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/cubes_map", 100);
 
         pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>("/rslidar_cloud_registered", 100);
 

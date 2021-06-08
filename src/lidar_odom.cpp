@@ -95,7 +95,7 @@ void LidarOdom::spin_once()
     else
     {
         cout << "nlp 优化求解\n" << endl;
-        calculate_pose_nlp();
+        calculate_pose_nlp(); //上一次计算出来的结果作为初值
     }
     cout << "总时间： " << t_whole.toc() << " ms " << endl;
 
@@ -393,7 +393,7 @@ void LidarOdom::pub_result()
 {
     // publish odometry
     nav_msgs::Odometry laserOdometry;
-    laserOdometry.header.frame_id = "/world";
+    laserOdometry.header.frame_id = "/odom";
     laserOdometry.child_frame_id = "/rslidar";
     laserOdometry.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat); // 这个时间在初始化的时候是收到的上一个节点的第一帧的结果
     laserOdometry.pose.pose.orientation.x = q_w_curr.x();                     // current 的四元数
@@ -410,7 +410,7 @@ void LidarOdom::pub_result()
     laserPose.pose = laserOdometry.pose.pose;
     laserPath.header.stamp = laserOdometry.header.stamp;
     laserPath.poses.push_back(laserPose);
-    laserPath.header.frame_id = "/world";
+    laserPath.header.frame_id = "/odom";
     pubLaserPath.publish(laserPath);
 
     // 下面是为建图节点提供输入
@@ -426,7 +426,7 @@ void LidarOdom::pub_result()
         sensor_msgs::PointCloud2 laserCloudSurfLast2;
         pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
         laserCloudSurfLast2.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
-        laserCloudSurfLast2.header.frame_id = "/ralidar";
+        laserCloudSurfLast2.header.frame_id = "/rslidar";
         pubLaserCloudSurfLast.publish(laserCloudSurfLast2); // 2代表现在做odom的时候用的less surf特征
 
         sensor_msgs::PointCloud2 laserCloudFullRes3; // 给第三个节点的被scan register处理后的全部点云
