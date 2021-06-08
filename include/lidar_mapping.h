@@ -56,21 +56,33 @@ public:
     pcl::PointCloud<PointType>::Ptr laserCloudCornerLast;
     pcl::PointCloud<PointType>::Ptr laserCloudSurfLast;
 
-    // ouput: all visualble cube points
-    pcl::PointCloud<PointType>::Ptr laserCloudSurround;
+    pcl::PointCloud<PointType>::Ptr laserCloudCornerStack;
+    pcl::PointCloud<PointType>::Ptr laserCloudSurfStack;
+    int laserCloudCornerStackNum;
+    int laserCloudSurfStackNum;
+    
 
     // surround points in map to build tree
     pcl::PointCloud<PointType>::Ptr laserCloudCornerFromMap;
     pcl::PointCloud<PointType>::Ptr laserCloudSurfFromMap;
+    int laserCloudCornerFromMapNum;
+    int laserCloudSurfFromMapNum;
 
-    //input & output: points in one frame. local --> global
-    pcl::PointCloud<PointType>::Ptr laserCloudFullRes;
+    // ouput: all visualble cube points
+    pcl::PointCloud<PointType>::Ptr laserCloudSurround;
 
     // points in every cube  可以用vector
     // pcl::PointCloud<PointType>::Ptr laserCloudCornerArray[4851];
     // pcl::PointCloud<PointType>::Ptr laserCloudSurfArray[4581];
-    vector<pcl::PointCloud<PointType>::Ptr > laserCloudCornerArray;
-    vector< pcl::PointCloud<PointType>::Ptr > laserCloudSurfArray;
+    vector<pcl::PointCloud<PointType>::Ptr> laserCloudCornerArray;
+    vector<pcl::PointCloud<PointType>::Ptr> laserCloudSurfArray;
+    int laserCloudValidNum = 0; // 计数
+    int laserCloudSurroundNum = 0;
+
+    //input & output: points in one frame. local --> global
+    pcl::PointCloud<PointType>::Ptr laserCloudFullRes;
+
+
 
     //kd-tree
     pcl::KdTreeFLANN<PointType>::Ptr kdtreeCornerFromMap;
@@ -106,6 +118,8 @@ public:
     PointType pointOri, pointSel;
 
     // ros
+    // tf 不能让br的生命周期太短
+   tf::TransformBroadcaster br;
     // pub
     ros::Publisher pubLaserCloudSurround, pubLaserCloudMap, pubLaserCloudFullRes, pubOdomAftMapped, pubOdomAftMappedHighFrec, pubLaserAfterMappedPath;
 
@@ -127,15 +141,20 @@ public:
 
 public:
     LidarMapping() : laserCloudCornerLast(new pcl::PointCloud<PointType>()), laserCloudSurfLast(new pcl::PointCloud<PointType>()),
+                     laserCloudCornerStack(new pcl::PointCloud<PointType>()),
+                     laserCloudSurfStack(new pcl::PointCloud<PointType>()),
                      laserCloudSurround(new pcl::PointCloud<PointType>()), laserCloudCornerFromMap(new pcl::PointCloud<PointType>()),
                      laserCloudSurfFromMap(new pcl::PointCloud<PointType>()), laserCloudFullRes(new pcl::PointCloud<PointType>()),
                      kdtreeCornerFromMap(new pcl::KdTreeFLANN<PointType>()), kdtreeSurfFromMap(new pcl::KdTreeFLANN<PointType>()),
                      q_wmap_wodom(1, 0, 0, 0), t_wmap_wodom(0, 0, 0), q_wodom_curr(1, 0, 0, 0), t_wodom_curr(0, 0, 0),
                      parameters{0, 0, 0, 1, 0, 0, 0}, q_w_curr(parameters), t_w_curr(parameters + 4)
     {
+        // 地图的中心cube的坐标 会变化
         laserCloudCenWidth = 10;
         laserCloudCenHeight = 10;
         laserCloudCenDepth = 5;
+
+        // 局部大地图的Cube
         laserCloudWidth = 21;
         laserCloudHeight = 21;
         laserCloudDepth = 11;
@@ -223,6 +242,17 @@ public:
 
     void take_cloud_from_buf();
 
+    void extend_cubes(int &, int &, int &);
+
+    void get_cloud_from_cubes(int &, int &, int &);
+
+    void add_cloud_to_map();
+
+    void downsample_cubes();
+
+    void publish_result();
+
+    void downsample_cloud_in();
 }; // end of class
 
 // 测试线程函数
