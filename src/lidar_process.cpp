@@ -129,15 +129,17 @@ void LidarPreProcess::extract_feature()
     cout << "集合各个线后的点云大小：" << count << endl;
     //
     cout << " " << cloudByScans_ptr->size() << endl;
+
     // 计算曲率
     int cloudSizeByScans = cloudByScans_ptr->size();
     for (int i = 5; i < cloudSizeByScans - 5; i++)
-    {
+    {   
+        // 如果刚好跨过一条线这个曲率计算是否有问题？ 
         double diffX = cloudByScans_ptr->points[i - 5].x + cloudByScans_ptr->points[i - 4].x + cloudByScans_ptr->points[i - 3].x + cloudByScans_ptr->points[i - 2].x + cloudByScans_ptr->points[i - 1].x - 10 * cloudByScans_ptr->points[i].x + cloudByScans_ptr->points[i + 1].x + cloudByScans_ptr->points[i + 2].x + cloudByScans_ptr->points[i + 3].x + cloudByScans_ptr->points[i + 4].x + cloudByScans_ptr->points[i + 5].x;
         double diffY = cloudByScans_ptr->points[i - 5].y + cloudByScans_ptr->points[i - 4].y + cloudByScans_ptr->points[i - 3].y + cloudByScans_ptr->points[i - 2].y + cloudByScans_ptr->points[i - 1].y - 10 * cloudByScans_ptr->points[i].y + cloudByScans_ptr->points[i + 1].y + cloudByScans_ptr->points[i + 2].y + cloudByScans_ptr->points[i + 3].y + cloudByScans_ptr->points[i + 4].y + cloudByScans_ptr->points[i + 5].y;
         double diffZ = cloudByScans_ptr->points[i - 5].z + cloudByScans_ptr->points[i - 4].z + cloudByScans_ptr->points[i - 3].z + cloudByScans_ptr->points[i - 2].z + cloudByScans_ptr->points[i - 1].z - 10 * cloudByScans_ptr->points[i].z + cloudByScans_ptr->points[i + 1].z + cloudByScans_ptr->points[i + 2].z + cloudByScans_ptr->points[i + 3].z + cloudByScans_ptr->points[i + 4].z + cloudByScans_ptr->points[i + 5].z;
 
-        cloudCurvature[i] = diffX * diffX + diffY * diffY + diffZ * diffZ; // 这个数组太大了
+        cloudCurvature[i] = diffX * diffX + diffY * diffY + diffZ * diffZ; // 这个数组很大
         cloudSortInd[i] = i;
         cloudNeighborPicked[i] = 0;
         cloudLabel[i] = 0;
@@ -163,19 +165,19 @@ void LidarPreProcess::extract_feature()
             std::sort(cloudSortInd + sp, cloudSortInd + ep + 1, [this](int i, int j)
                       { return this->cloudCurvature[i] < this->cloudCurvature[j]; }); // 对该部分进行曲率的排序 排好的索引放在cloudSortInd中
 
-            // 选取sharp的点
+            // 选取sharp的点的数量增加
             int largestPickedNum = 0;
             for (int k = ep; k >= sp; k--)
             {
-                int ind = cloudSortInd[k];
+                int ind = cloudSortInd[k]; // 全部点云中的索引
                 if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] > 0.1)
-                {
+                { // 当前索引中的点没有被选中过，并且曲率足够大
                     largestPickedNum++;
                     if (largestPickedNum <= 2)
                     {
-                        cloudLabel[ind] = 2;
-                        cornerPointsSharp.push_back(cloudByScans_ptr->points[ind]); // 每段最多放两个点进去
-                        cornerPointsLessSharp.push_back(cloudByScans_ptr->points[ind]);
+                        cloudLabel[ind] = 2; // 标记为２
+                        cornerPointsSharp.push_back(cloudByScans_ptr->points[ind]); // 每段最多放２个点进去
+                        cornerPointsLessSharp.push_back(cloudByScans_ptr->points[ind]); // 包含了ｃｏｒｎｅｒ的点
                     }
                     else if (largestPickedNum <= 20)
                     {
@@ -184,6 +186,7 @@ void LidarPreProcess::extract_feature()
                     }
                     else
                     {
+                        // 超过２０个点之后就不再继续
                         break;
                     }
 
@@ -193,10 +196,11 @@ void LidarPreProcess::extract_feature()
                         float diffX = cloudByScans_ptr->points[ind + l].x - cloudByScans_ptr->points[ind + l - 1].x;
                         float diffY = cloudByScans_ptr->points[ind + l].y - cloudByScans_ptr->points[ind + l - 1].y;
                         float diffZ = cloudByScans_ptr->points[ind + l].z - cloudByScans_ptr->points[ind + l - 1].z;
-                        if (diffX * diffX + diffY * diffY + diffZ * diffZ > 0.05) // 如果周围的点的曲率大于一定值
+                        if (diffX * diffX + diffY * diffY + diffZ * diffZ > 0.05) 
                         {
                             break;
                         }
+                        // 如果周围的点的曲率大于一定值则不会被标记
                         cloudNeighborPicked[ind + l] = 1; // 周围的点的曲率没有达到阈值时，标记为1
                     }
                     for (int l = -1; l >= -5; l--)
@@ -234,7 +238,8 @@ void LidarPreProcess::extract_feature()
                         float diffX = cloudByScans_ptr->points[ind + l].x - cloudByScans_ptr->points[ind + l - 1].x;
                         float diffY = cloudByScans_ptr->points[ind + l].y - cloudByScans_ptr->points[ind + l - 1].y;
                         float diffZ = cloudByScans_ptr->points[ind + l].z - cloudByScans_ptr->points[ind + l - 1].z;
-                        if (diffX * diffX + diffY * diffY + diffZ * diffZ > 0.05) // TODO 为什么这里也是大于0.05？ 选择平面点的时候不应该是太小的标记吗？
+                        if (diffX * diffX + diffY * diffY + diffZ * diffZ > 0.05) 
+                        // TODO 为什么这里也是大于0.05？ 选择平面点的时候不应该是太小的标记吗？
                         {
                             break;
                         }
@@ -283,11 +288,13 @@ void LidarPreProcess::lidar_callback_func(const sensor_msgs::PointCloud2ConstPtr
 
 
     cloudOri.clear();
-    cloudPreProcess.clear();
+    
     tcal.tic();
 
     pcl::fromROSMsg(*pointCloudMsg_in, cloudOri); //该函数的第二个形参只能是pointcloud形式
     std::vector<int> indices;
+
+    // cloudPreProcess.clear();
     // pcl::removeNaNFromPointCloud(cloudOri, cloudOri, indices);    // 先去掉NaN的点 is_dense的情况下不会滤去NaN的点...
     // cout << "是否dense: " << cloudOri.is_dense
     //      << endl;
@@ -307,8 +314,14 @@ void LidarPreProcess::lidar_callback_func(const sensor_msgs::PointCloud2ConstPtr
     extract_feature();
     cout << "提取特征的时间： " << tcal.toc() << endl;
 
-    // 发布特征点
-    sensor_msgs::PointCloud2 laserCloudOutMsg; // 按scan排好的点云
+    // 发布特征点点云
+    publish_point_cloud(pointCloudMsg_in);
+}
+
+
+void LidarPreProcess::publish_point_cloud(const sensor_msgs::PointCloud2ConstPtr &pointCloudMsg_in)
+{
+     sensor_msgs::PointCloud2 laserCloudOutMsg; // 按scan排好的点云
     pcl::toROSMsg(*cloudByScans_ptr, laserCloudOutMsg);
     laserCloudOutMsg.header.stamp = pointCloudMsg_in->header.stamp;
     laserCloudOutMsg.header.frame_id = "/rslidar";
@@ -355,4 +368,5 @@ void LidarPreProcess::lidar_callback_func(const sensor_msgs::PointCloud2ConstPtr
             pubEachScan[i].publish(scanMsg);
         }
     }
+
 }

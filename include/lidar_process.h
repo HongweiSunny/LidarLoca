@@ -232,6 +232,10 @@ public:
     void extract_feature();
 
     void lidar_callback_func(const sensor_msgs::PointCloud2ConstPtr &pointCloudMsg_in);
+
+    void publish_point_cloud(const sensor_msgs::PointCloud2ConstPtr &pointCloudMsg_in);
+
+
 };
 
 #endif
