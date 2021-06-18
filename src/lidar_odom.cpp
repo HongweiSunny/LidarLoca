@@ -41,15 +41,15 @@ void LidarOdom::spin_once()
 {
     // cout << "spin once of node!\n";
     bool flagBufEmpty = !cornerSharpBuf.empty() && !cornerLessSharpBuf.empty() && !surfFlatBuf.empty() && !surfLessFlatBuf.empty() && !fullPointsBuf.empty();
+    
     //如果这些buf都不空
-
     if (!flagBufEmpty)
     {
         rate.sleep();
         return;
     }
 
-    // 找到最前面的数据的s级别的数据 看是否一致 有一个不一致就会中断ROS
+    // 找到最前面的数据的秒级别的数据 看是否一致 有一个不一致就会中断ROS
     timeCornerPointsSharp = cornerSharpBuf.front()->header.stamp.toSec(); // 这些变量后面发布信息时会用到
     timeCornerPointsLessSharp = cornerLessSharpBuf.front()->header.stamp.toSec();
     timeSurfPointsFlat = surfFlatBuf.front()->header.stamp.toSec();
