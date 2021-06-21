@@ -66,7 +66,8 @@
         "cinttypes": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "dense": "cpp"
+        "dense": "cpp",
+        "random": "cpp"
     },
     "python.autoComplete.extraPaths": [
         "/home/shw/ROScode/autoware_Sun/devel/lib/python2.7/dist-packages",

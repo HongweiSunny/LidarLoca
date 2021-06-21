@@ -169,4 +169,10 @@ public:
         void TransformToStart(PointType const *const pi, PointType *const po);
 
         void TransformToEnd(PointType const *const pi, PointType *const po);
-};
+
+        bool notempty_check();
+        void synchronization_check();
+
+        void copy_feature_point_clout();
+
+}; // end of class
