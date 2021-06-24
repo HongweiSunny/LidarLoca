@@ -171,26 +171,28 @@ public:
 
         // ros
         // sub
-        subLaserCloudCornerLast = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_corner_last", 100, &LidarMapping::laserCloudCornerLastHandler, this);
+        subLaserCloudCornerLast = nh.subscribe<sensor_msgs::PointCloud2>("/odom/cloud_corner_last", 100, &LidarMapping::laserCloudCornerLastHandler, this);
 
-        subLaserCloudSurfLast = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_surf_last", 100, &LidarMapping::laserCloudSurfLastHandler, this);
+        subLaserCloudSurfLast = nh.subscribe<sensor_msgs::PointCloud2>("/odom/cloud_surf_last", 100, &LidarMapping::laserCloudSurfLastHandler, this);
 
-        subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/laser_odom_to_init", 100, &LidarMapping::laserOdometryHandler, this);
+        subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/odom/laser_odom_to_init", 100, &LidarMapping::laserOdometryHandler, this);
 
-        subLaserCloudFullRes = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_3", 100, &LidarMapping::laserCloudFullResHandler, this);
+        subLaserCloudFullRes = nh.subscribe<sensor_msgs::PointCloud2>("/odom/cloud_3", 100, &LidarMapping::laserCloudFullResHandler, this);
 
         // pub
-        pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>("/surround_sub_map", 100);
+        pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>("/mapping/surround_sub_map", 100);
 
-        pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/cubes_map", 100);
+        pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/mapping/cubes_map", 100);
 
-        pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>("/rslidar_cloud_registered", 100);
+        pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>("/mapping/rslidar_cloud_registered", 100);
 
-        pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/aft_mapped_to_init", 100);
+        // 低频的发布        
+        pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/mapping/aft_mapped_to_init", 100);
 
-        pubOdomAftMappedHighFrec = nh.advertise<nav_msgs::Odometry>("/aft_mapped_to_init_high_frec", 100);
+        // 高频率的发布
+        pubOdomAftMappedHighFrec = nh.advertise<nav_msgs::Odometry>("/mapping/aft_mapped_to_init_high_frec", 100);
 
-        pubLaserAfterMappedPath = nh.advertise<nav_msgs::Path>("/aft_mapped_path", 100);
+        pubLaserAfterMappedPath = nh.advertise<nav_msgs::Path>("/mapping/aft_mapped_path", 100);
 
 //
 #ifdef DEBUG

@@ -18,6 +18,7 @@
 #include <eigen3/Eigen/Dense>
 #include <mutex>
 #include <queue>
+#include <thread>
 
 #include "lidarFactor.hpp"
 #include  "common.h"
@@ -121,7 +122,7 @@ class LidarOdom
         // 路径
         nav_msgs::Path laserPath;
 
-
+        
 
         ~LidarOdom(){};
 
@@ -141,17 +142,17 @@ public:
                 laserCloudFullRes = boost::make_shared<pcl::PointCloud<PointType>>();
 
                 //
-                subCornerPointsSharp = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_sharp", 100, &LidarOdom::laserCloudSharpHandler, this);
-                subCornerPointsLessSharp = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_less_sharp", 100, &LidarOdom::laserCloudLessSharpHandler, this);
-                subSurfPointsFlat = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_flat", 100, &LidarOdom::laserCloudFlatHandler, this);
-                subSurfPointsLessFlat = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_less_flat", 100, &LidarOdom::laserCloudLessFlatHandler, this);
-                subLaserCloudFullRes = nh.subscribe<sensor_msgs::PointCloud2>("/cloud_by_scans", 100, &LidarOdom::laserCloudFullResHandler, this);
+                subCornerPointsSharp = nh.subscribe<sensor_msgs::PointCloud2>("/process/cloud_sharp", 1000, &LidarOdom::laserCloudSharpHandler, this);
+                subCornerPointsLessSharp = nh.subscribe<sensor_msgs::PointCloud2>("/process/cloud_less_sharp", 1000, &LidarOdom::laserCloudLessSharpHandler, this);
+                subSurfPointsFlat = nh.subscribe<sensor_msgs::PointCloud2>("/process/cloud_flat", 100, &LidarOdom::laserCloudFlatHandler, this);
+                subSurfPointsLessFlat = nh.subscribe<sensor_msgs::PointCloud2>("/process/cloud_less_flat", 1000, &LidarOdom::laserCloudLessFlatHandler, this);
+                subLaserCloudFullRes = nh.subscribe<sensor_msgs::PointCloud2>("/process/cloud_by_scans", 1000, &LidarOdom::laserCloudFullResHandler, this);
                 //
-                pubLaserCloudCornerLast = nh.advertise<sensor_msgs::PointCloud2>("/cloud_corner_last", 100);
-                pubLaserCloudSurfLast = nh.advertise<sensor_msgs::PointCloud2>("/cloud_surf_last", 100);
-                pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>("/cloud_3", 100);
-                pubLaserOdometry = nh.advertise<nav_msgs::Odometry>("/laser_odom_to_init", 100);
-                pubLaserPath = nh.advertise<nav_msgs::Path>("/laser_odom_path", 100);
+                pubLaserCloudCornerLast = nh.advertise<sensor_msgs::PointCloud2>("/odom/cloud_corner_last", 1000);
+                pubLaserCloudSurfLast = nh.advertise<sensor_msgs::PointCloud2>("/odom/cloud_surf_last", 1000);
+                pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>("/odom/cloud_3", 1000);
+                pubLaserOdometry = nh.advertise<nav_msgs::Odometry>("/odom/laser_odom_to_init", 1000);
+                pubLaserPath = nh.advertise<nav_msgs::Path>("/odom/laser_odom_path", 1000);
 
                 //t_last_curr << 0,0,0;
                 //t_w_curr << 0, 0, 0;
@@ -174,5 +175,8 @@ public:
         void synchronization_check();
 
         void copy_feature_point_clout();
+
+        // 
+        void process();
 
 }; // end of class

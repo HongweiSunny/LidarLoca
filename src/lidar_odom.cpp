@@ -63,7 +63,7 @@ void LidarOdom::synchronization_check()
 void LidarOdom::copy_feature_point_clout()
 {
     std::lock_guard<std::mutex> lockGuard(mBuf);
-
+    cout<<"================\n*目前收到的时间戳： "<<cornerSharpBuf.front()->header.stamp<<endl;
     cornerPointsSharp->clear();
     pcl::fromROSMsg(*cornerSharpBuf.front(), *cornerPointsSharp);
     cornerSharpBuf.pop();
@@ -88,7 +88,7 @@ void LidarOdom::spin_once()
     if (!notempty_check())
     {
         rate.sleep();
-        continue;
+        return;
     }
     //　1.2 同步检测
     synchronization_check();
@@ -111,6 +111,11 @@ void LidarOdom::spin_once()
         calculate_pose_nlp(); //上一次计算出来的结果作为初值
     }
     cout << "总时间： " << t_whole.toc() << " ms " << endl;
+    // 超时警告信息
+    if (t_whole.toc() > 100)
+    {
+        ROS_WARN("odometry process over 100ms");
+    }
 
     // // 后处理
     after_process();
@@ -165,7 +170,6 @@ void LidarOdom::calculate_pose_nlp()
                 int closestPointScanID = int(laserCloudCornerLast->points[closestPointInd].intensity);
 
                 double minPointSqDis2 = DISTANCE_SQ_THRESHOLD;
-
                 // search in the direction of increasing scan line
                 for (int j = closestPointInd + 1; j < (int)laserCloudCornerLast->points.size(); ++j)
                 {
@@ -395,11 +399,7 @@ void LidarOdom::after_process()
     // printf("publication time %f ms \n", t_pub.toc());
     // printf("whole laserOdometry time %f ms \n \n", t_whole.toc());
 
-    // 超时警告信息
-    // if (t_whole.toc() > 100)
-    // {
-    //     ROS_WARN("odometry process over 100ms");
-    // }
+    
 } // end of func
 
 void LidarOdom::pub_result()
@@ -489,4 +489,14 @@ void LidarOdom::TransformToEnd(PointType const *const pi, PointType *const po)
 
     //Remove distortion time info
     po->intensity = int(pi->intensity);
+}
+
+void LidarOdom::process()
+{
+    cout<<"============="<<endl;
+    cout<<"enter into process thread of odom!";
+    while(1)
+    {
+        spin_once();
+    }
 }

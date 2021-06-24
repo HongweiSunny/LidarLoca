@@ -54,7 +54,8 @@ void LidarMapping::process()
 
             TicToc t_whole;
 
-            transformAssociateToMap();
+            // 用维护的map_odom * odom_curr　得到map_curr
+            transformAssociateToMap(); 
 
             TicToc t_shift;
             // 下面这是计算当前帧位置t_w_curr（在上图中用红色五角星表示的位置）IJK坐标（见上图中的坐标轴），
@@ -116,7 +117,7 @@ void LidarMapping::process()
 
                     for (int i = 0; i < laserCloudCornerStackNum; i++)
                     {
-                        pointOri = laserCloudCornerStack->points[i];
+                        pointOri = laserCloudCornerStack->points[i]; // stack 是被降采样后的点云
                         // 需要注意的是submap中的点云都是world坐标系，而当前帧的点云都是Lidar坐标系，所以
                         // 在搜寻最近邻点时，先用预测的Mapping位姿w_curr，将Lidar坐标系下的特征点变换到world坐标系下
                         //double sqrtDis = pointOri.x * pointOri.x + pointOri.y * pointOri.y + pointOri.z * pointOri.z;

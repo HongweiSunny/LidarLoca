@@ -1,5 +1,6 @@
 #include "lidar_mapping.h"
 
+// -------------- 四个消息处理函数
 void LidarMapping::laserCloudCornerLastHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudCornerLast2)
 {
     mBuf.lock();
@@ -41,12 +42,13 @@ void LidarMapping::laserOdometryHandler(const nav_msgs::Odometry::ConstPtr &lase
 
     // wodom_curr 是前端发过来的
     // wmap 是建图过程中对wdom做的修正
+    // mapping 节点一直维护的是map到odom之间的关系
+    // 用４*4的旋转矩阵的方式来理解下面的转换关系
     Eigen::Quaterniond q_w_curr = q_wmap_wodom * q_wodom_curr;
-    Eigen::Vector3d t_w_curr = q_wmap_wodom * t_wodom_curr + t_wmap_wodom; // 为什么 t_w_curr 和 t_wdom_curr不是在同一个坐标系下面的？？？TODO
-
+    Eigen::Vector3d t_w_curr = q_wmap_wodom * t_wodom_curr + t_wmap_wodom;
     nav_msgs::Odometry odomAftMapped;
-    odomAftMapped.header.frame_id = "/wmap"; //  "/camera_init";
-    odomAftMapped.child_frame_id = "/wodom"; // "/apt_mapped"
+    odomAftMapped.header.frame_id = "/map";    //  "/camera_init";
+    odomAftMapped.child_frame_id = "/rslidar"; // "/apt_mapped"
     odomAftMapped.header.stamp = laserOdometry->header.stamp;
     odomAftMapped.pose.pose.orientation.x = q_w_curr.x();
     odomAftMapped.pose.pose.orientation.y = q_w_curr.y();
@@ -56,8 +58,10 @@ void LidarMapping::laserOdometryHandler(const nav_msgs::Odometry::ConstPtr &lase
     odomAftMapped.pose.pose.position.y = t_w_curr.y();
     odomAftMapped.pose.pose.position.z = t_w_curr.z();
     pubOdomAftMappedHighFrec.publish(odomAftMapped);
+    //  直接发布是因为建图的频率是比较低的，这样可以使得上一次的建图优化的结果可以按照收到的odometry的频率被利用
 }
 
+// 两个同步检测函数
 bool LidarMapping::sync_to_corner_detect()
 {
     bool flag = true;
@@ -504,13 +508,15 @@ void LidarMapping::publish_result()
             *laserCloudSurround += *laserCloudCornerArray[ind];
             *laserCloudSurround += *laserCloudSurfArray[ind];
         }
-
-        sensor_msgs::PointCloud2 laserCloudSurround3;
-        pcl::toROSMsg(*laserCloudSurround, laserCloudSurround3);
-        // sync_cloud_time_detect中取出了时间戳
-        laserCloudSurround3.header.stamp = ros::Time().fromSec(timeLaserOdometry);
-        laserCloudSurround3.header.frame_id = "map"; //"/camera_init";
-        pubLaserCloudSurround.publish(laserCloudSurround3);
+        if (pubLaserCloudMap.getNumSubscribers() != 0)
+        {
+            sensor_msgs::PointCloud2 laserCloudSurround3;
+            pcl::toROSMsg(*laserCloudSurround, laserCloudSurround3);
+            // sync_cloud_time_detect中取出了时间戳
+            laserCloudSurround3.header.stamp = ros::Time().fromSec(timeLaserOdometry);
+            laserCloudSurround3.header.frame_id = "/map"; //"/camera_init";
+            pubLaserCloudSurround.publish(laserCloudSurround3);
+        }
     }
 
     // 20帧发布一次全部的大地图
@@ -524,11 +530,14 @@ void LidarMapping::publish_result()
             laserCloudMap += *laserCloudCornerArray[i];
             laserCloudMap += *laserCloudSurfArray[i];
         }
-        sensor_msgs::PointCloud2 laserCloudMsg;
-        pcl::toROSMsg(laserCloudMap, laserCloudMsg);
-        laserCloudMsg.header.stamp = ros::Time().fromSec(timeLaserOdometry);
-        laserCloudMsg.header.frame_id = "/map";
-        pubLaserCloudMap.publish(laserCloudMsg);
+        if (pubLaserCloudMap.getNumSubscribers() != 0)
+        {
+            sensor_msgs::PointCloud2 laserCloudMsg;
+            pcl::toROSMsg(laserCloudMap, laserCloudMsg);
+            laserCloudMsg.header.stamp = ros::Time().fromSec(timeLaserOdometry);
+            laserCloudMsg.header.frame_id = "/map";
+            pubLaserCloudMap.publish(laserCloudMsg);
+        }
     }
 
     // 把当前收到的点云转移到map坐标系下
@@ -538,35 +547,41 @@ void LidarMapping::publish_result()
         pointAssociateToMap(&laserCloudFullRes->points[i], &laserCloudFullRes->points[i]);
     }
 
-    sensor_msgs::PointCloud2 laserCloudFullRes3;
-    pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
-    laserCloudFullRes3.header.stamp = ros::Time().fromSec(timeLaserOdometry);
-    laserCloudFullRes3.header.frame_id = "/map";
-    pubLaserCloudFullRes.publish(laserCloudFullRes3);
+    if (pubLaserCloudFullRes.getNumSubscribers() != 0)
+    {
+        sensor_msgs::PointCloud2 laserCloudFullRes3;
+        pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
+        laserCloudFullRes3.header.stamp = ros::Time().fromSec(timeLaserOdometry);
+        laserCloudFullRes3.header.frame_id = "/map";
+        pubLaserCloudFullRes.publish(laserCloudFullRes3);
+    }
 
     printf("mapping pub time %f ms \n", t_pub.toc());
 
     // 发布导航信息
-    nav_msgs::Odometry odomAftMapped;
-    odomAftMapped.header.frame_id = "/map";
-    odomAftMapped.child_frame_id = "/rslidar";
-    odomAftMapped.header.stamp = ros::Time().fromSec(timeLaserOdometry);
-    odomAftMapped.pose.pose.orientation.x = q_w_curr.x();
-    odomAftMapped.pose.pose.orientation.y = q_w_curr.y();
-    odomAftMapped.pose.pose.orientation.z = q_w_curr.z();
-    odomAftMapped.pose.pose.orientation.w = q_w_curr.w();
-    odomAftMapped.pose.pose.position.x = t_w_curr.x();
-    odomAftMapped.pose.pose.position.y = t_w_curr.y();
-    odomAftMapped.pose.pose.position.z = t_w_curr.z();
-    pubOdomAftMapped.publish(odomAftMapped);
+        nav_msgs::Odometry odomAftMapped;
+        odomAftMapped.header.frame_id = "/map";
+        odomAftMapped.child_frame_id = "/rslidar";
+        odomAftMapped.header.stamp = ros::Time().fromSec(timeLaserOdometry);
+        odomAftMapped.pose.pose.orientation.x = q_w_curr.x();
+        odomAftMapped.pose.pose.orientation.y = q_w_curr.y();
+        odomAftMapped.pose.pose.orientation.z = q_w_curr.z();
+        odomAftMapped.pose.pose.orientation.w = q_w_curr.w();
+        odomAftMapped.pose.pose.position.x = t_w_curr.x();
+        odomAftMapped.pose.pose.position.y = t_w_curr.y();
+        odomAftMapped.pose.pose.position.z = t_w_curr.z();
+        pubOdomAftMapped.publish(odomAftMapped); // 低频的发布
 
-    geometry_msgs::PoseStamped laserAfterMappedPose;
-    laserAfterMappedPose.header = odomAftMapped.header;
-    laserAfterMappedPose.pose = odomAftMapped.pose.pose;
-    laserAfterMappedPath.header.stamp = odomAftMapped.header.stamp;
-    laserAfterMappedPath.header.frame_id = "/map";
-    laserAfterMappedPath.poses.push_back(laserAfterMappedPose);
-    pubLaserAfterMappedPath.publish(laserAfterMappedPath);
+    if (pubLaserAfterMappedPath.getNumSubscribers() != 0)
+    {
+        geometry_msgs::PoseStamped laserAfterMappedPose;
+        laserAfterMappedPose.header = odomAftMapped.header;
+        laserAfterMappedPose.pose = odomAftMapped.pose.pose;
+        laserAfterMappedPath.header.stamp = odomAftMapped.header.stamp;
+        laserAfterMappedPath.header.frame_id = "/map";
+        laserAfterMappedPath.poses.push_back(laserAfterMappedPose);
+        pubLaserAfterMappedPath.publish(laserAfterMappedPath);
+    }
 
     // tf
     tf::Transform transform;
@@ -579,7 +594,7 @@ void LidarMapping::publish_result()
     q.setY(q_w_curr.y());
     q.setZ(q_w_curr.z());
     transform.setRotation(q);
-     
+
     br.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "/map", "/rslidar"));
 
     frameCount++;
@@ -601,7 +616,7 @@ void LidarMapping::downsample_cloud_in()
     laserCloudSurfStackNum = laserCloudSurfStack->points.size(); // 后面会用到
 }
 
-// 线程函数入口
+// 线程函数入口 不属于类
 void process_map_func(LidarMapping &LM)
 {
     LM.process();

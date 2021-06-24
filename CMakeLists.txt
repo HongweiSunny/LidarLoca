@@ -36,6 +36,8 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   cv_bridge
   tf
+  tf_conversions
+  eigen_conversions
 )
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
@@ -75,6 +77,13 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/lidar_mapping.h
 ${CMAKE_CURRENT_SOURCE_DIR}/include/lidarFactor.hpp
     )
 
+    set(SOURCES_eva
+${CMAKE_CURRENT_SOURCE_DIR}/src/result_evaluation.cpp
+    )
+    set(HEADERS_eva
+
+    )
+
 
 include_directories(
  ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -88,7 +97,7 @@ include_directories(
 
 catkin_package(
   CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
-  DEPENDS  PCL 
+  DEPENDS  PCL
   INCLUDE_DIRS include
 )
 
@@ -100,4 +109,12 @@ target_link_libraries( lidar_odometry_node   ${catkin_LIBRARIES} ${PCL_LIBRARIES
 
 add_executable(lidar_mapping_node    src/lidar_mapping_node.cpp  ${SOURCES_MAP} ${HEADERS_MAP})
 target_link_libraries( lidar_mapping_node   ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})
+
+add_executable(result_evaluation    src/result_evaluation.cpp  ${SOURCES_eva} ${HEADERS_eva})
+target_link_libraries( result_evaluation   ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES}) 
+
+
+# add_subdirectory(benchmark) benchmark/
+add_executable(evaluation evaluation.cpp ${catkin_INCLUDE_DIRS})
+target_link_libraries(evaluation ${catkin_LIBRARIES})
 

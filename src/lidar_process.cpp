@@ -28,6 +28,24 @@ void LidarPreProcess::dist_filter(pcl::PointCloud<PointXYZ> &cloudIn, pcl::Point
     }
 }
 
+int LidarPreProcess::calculate_scan_id(const double &angle)
+{
+    // scanID = int((angle + 15) / 2 + 0.5);
+
+    int scanID = -1;
+    if (angle <= this->lidarConf.channelAngles[0])
+        scanID = 0;
+    if (angle >= this->lidarConf.channelAngles[this->lidarConf.channelAngles.size() - 1])
+        scanID = 127;
+    if (scanID < 0)
+    {
+        // 二分查找 STL库
+        auto it = std::lower_bound(this->lidarConf.channelAngles.begin(), this->lidarConf.channelAngles.end(), angle);
+        scanID = it - this->lidarConf.channelAngles.begin();
+    }
+    return scanID;
+}
+
 // 提取特征
 void LidarPreProcess::extract_line(pcl::PointCloud<PointXYZ> &cloudIn)
 {
@@ -36,9 +54,9 @@ void LidarPreProcess::extract_line(pcl::PointCloud<PointXYZ> &cloudIn)
     // clear all scanline points
     std::for_each(cloudScans.begin(), cloudScans.end(), [](pcl::PointCloud<PointType> &v)
                   { v.points.clear(); }); // 引用才能清除
-    cout << "清除vector后" << endl;
-    std::for_each(cloudScans.begin(), cloudScans.end(), [](pcl::PointCloud<PointType> v)
-                  { cout << v.points.size() << " "; });
+                                          // 　　cout << "清除vector后" << endl;
+    // std::for_each(cloudScans.begin(), cloudScans.end(), [](pcl::PointCloud<PointType> v)
+    //   { cout << v.points.size() << " "; });
     cout << endl;
 
     // vector<int> vvv(10, 0);
@@ -57,6 +75,9 @@ void LidarPreProcess::extract_line(pcl::PointCloud<PointXYZ> &cloudIn)
     {
         endOri += 2 * M_PI;
     }
+
+    int maxID = -1000;
+    int minID = 1000;
     for (int i = 0; i < cloudSize; i++)
     {
         pcl::PointXYZI p;
@@ -79,14 +100,29 @@ void LidarPreProcess::extract_line(pcl::PointCloud<PointXYZ> &cloudIn)
         // calculate vertical point angle and scan ID
         double angle = std::atan(p.z / std::sqrt(p.x * p.x + p.y * p.y)) * 180 / M_PI;
         int scanID = 0;
-        scanID = int((angle + 15) / 2 + 0.5);                      // 速腾的角度和velodyne的角度不同 ==TODO==
-        if (scanID > (lidarConf.get_num_scan() - 1) || scanID < 0) // 
+
+        // 速腾的角度和pandars的角度不同 ==TODO==
+        //scanID = int((angle + 15) / 2 + 0.5);
+        // scanID = int((angle + 25)/ (40.0/128.0)+ 0.5);
+        scanID = calculate_scan_id(angle);
+        
+        // 降采样线束 4 12 20 28 ......
+        if((scanID-2)% 4 != 0)
+            continue;
+        scanID = (scanID-2)/4;
+
+
+        if (scanID < minID)
+            minID = scanID;
+        if (scanID > maxID)
+            maxID = scanID;
+        if (scanID > (lidarConf.get_num_scan() - 1) || scanID < 0) //
         {
             continue;
         }
         double ori = -atan2(p.y, p.x); // 激光雷达是逆时针旋转的
         ori += 2 * M_PI;
-        if (ori < endOri - M_PI * 3 / 2) 
+        if (ori < endOri - M_PI * 3 / 2)
         {
             ori += 2 * M_PI;
         }
@@ -108,6 +144,8 @@ void LidarPreProcess::extract_line(pcl::PointCloud<PointXYZ> &cloudIn)
         // cout << "intensity" << p.intensity << endl;
         cloudScans[scanID].push_back(p);
     }
+    //cout<<"minID: "<<minID<<endl;
+    //cout<<"maxID: "<<maxID<<endl;
 }
 
 void LidarPreProcess::extract_feature()
@@ -133,8 +171,8 @@ void LidarPreProcess::extract_feature()
     // 计算曲率
     int cloudSizeByScans = cloudByScans_ptr->size();
     for (int i = 5; i < cloudSizeByScans - 5; i++)
-    {   
-        // 如果刚好跨过一条线这个曲率计算是否有问题？ 
+    {
+        // 如果刚好跨过一条线这个曲率计算是否有问题？
         double diffX = cloudByScans_ptr->points[i - 5].x + cloudByScans_ptr->points[i - 4].x + cloudByScans_ptr->points[i - 3].x + cloudByScans_ptr->points[i - 2].x + cloudByScans_ptr->points[i - 1].x - 10 * cloudByScans_ptr->points[i].x + cloudByScans_ptr->points[i + 1].x + cloudByScans_ptr->points[i + 2].x + cloudByScans_ptr->points[i + 3].x + cloudByScans_ptr->points[i + 4].x + cloudByScans_ptr->points[i + 5].x;
         double diffY = cloudByScans_ptr->points[i - 5].y + cloudByScans_ptr->points[i - 4].y + cloudByScans_ptr->points[i - 3].y + cloudByScans_ptr->points[i - 2].y + cloudByScans_ptr->points[i - 1].y - 10 * cloudByScans_ptr->points[i].y + cloudByScans_ptr->points[i + 1].y + cloudByScans_ptr->points[i + 2].y + cloudByScans_ptr->points[i + 3].y + cloudByScans_ptr->points[i + 4].y + cloudByScans_ptr->points[i + 5].y;
         double diffZ = cloudByScans_ptr->points[i - 5].z + cloudByScans_ptr->points[i - 4].z + cloudByScans_ptr->points[i - 3].z + cloudByScans_ptr->points[i - 2].z + cloudByScans_ptr->points[i - 1].z - 10 * cloudByScans_ptr->points[i].z + cloudByScans_ptr->points[i + 1].z + cloudByScans_ptr->points[i + 2].z + cloudByScans_ptr->points[i + 3].z + cloudByScans_ptr->points[i + 4].z + cloudByScans_ptr->points[i + 5].z;
@@ -173,13 +211,13 @@ void LidarPreProcess::extract_feature()
                 if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] > 0.1)
                 { // 当前索引中的点没有被选中过，并且曲率足够大
                     largestPickedNum++;
-                    if (largestPickedNum <= 2)
+                    if (largestPickedNum <= 2) // 2
                     {
-                        cloudLabel[ind] = 2; // 标记为２
-                        cornerPointsSharp.push_back(cloudByScans_ptr->points[ind]); // 每段最多放２个点进去
+                        cloudLabel[ind] = 2;                                            // 标记为２
+                        cornerPointsSharp.push_back(cloudByScans_ptr->points[ind]);     // 每段最多放２个点进去
                         cornerPointsLessSharp.push_back(cloudByScans_ptr->points[ind]); // 包含了ｃｏｒｎｅｒ的点
                     }
-                    else if (largestPickedNum <= 20)
+                    else if (largestPickedNum <= 20) // 20
                     {
                         cloudLabel[ind] = 1;
                         cornerPointsLessSharp.push_back(cloudByScans_ptr->points[ind]); // 每段最多放20个点进去
@@ -196,7 +234,7 @@ void LidarPreProcess::extract_feature()
                         float diffX = cloudByScans_ptr->points[ind + l].x - cloudByScans_ptr->points[ind + l - 1].x;
                         float diffY = cloudByScans_ptr->points[ind + l].y - cloudByScans_ptr->points[ind + l - 1].y;
                         float diffZ = cloudByScans_ptr->points[ind + l].z - cloudByScans_ptr->points[ind + l - 1].z;
-                        if (diffX * diffX + diffY * diffY + diffZ * diffZ > 0.05) 
+                        if (diffX * diffX + diffY * diffY + diffZ * diffZ > 0.05)
                         {
                             break;
                         }
@@ -227,7 +265,7 @@ void LidarPreProcess::extract_feature()
                     cloudLabel[ind] = -1;
                     surfPointsFlat.push_back(cloudByScans_ptr->points[ind]);
                     smallestPickedNum++;
-                    if (smallestPickedNum >= 4) // 选取四个点
+                    if (smallestPickedNum >= 4) // 选取四个点 //4
                     {
                         break;
                     }
@@ -238,7 +276,7 @@ void LidarPreProcess::extract_feature()
                         float diffX = cloudByScans_ptr->points[ind + l].x - cloudByScans_ptr->points[ind + l - 1].x;
                         float diffY = cloudByScans_ptr->points[ind + l].y - cloudByScans_ptr->points[ind + l - 1].y;
                         float diffZ = cloudByScans_ptr->points[ind + l].z - cloudByScans_ptr->points[ind + l - 1].z;
-                        if (diffX * diffX + diffY * diffY + diffZ * diffZ > 0.05) 
+                        if (diffX * diffX + diffY * diffY + diffZ * diffZ > 0.05)
                         // TODO 为什么这里也是大于0.05？ 选择平面点的时候不应该是太小的标记吗？
                         {
                             break;
@@ -286,14 +324,13 @@ void LidarPreProcess::lidar_callback_func(const sensor_msgs::PointCloud2ConstPtr
     cout << "get lidar data!" << endl;
 #endif
 
-
     cloudOri.clear();
-    
+
     tcal.tic();
 
     pcl::fromROSMsg(*pointCloudMsg_in, cloudOri); //该函数的第二个形参只能是pointcloud形式
     std::vector<int> indices;
-
+    cout << "================\n*目前收到的时间戳： " << pointCloudMsg_in->header.stamp << endl;
     // cloudPreProcess.clear();
     // pcl::removeNaNFromPointCloud(cloudOri, cloudOri, indices);    // 先去掉NaN的点 is_dense的情况下不会滤去NaN的点...
     // cout << "是否dense: " << cloudOri.is_dense
@@ -318,10 +355,9 @@ void LidarPreProcess::lidar_callback_func(const sensor_msgs::PointCloud2ConstPtr
     publish_point_cloud(pointCloudMsg_in);
 }
 
-
 void LidarPreProcess::publish_point_cloud(const sensor_msgs::PointCloud2ConstPtr &pointCloudMsg_in)
 {
-     sensor_msgs::PointCloud2 laserCloudOutMsg; // 按scan排好的点云
+    sensor_msgs::PointCloud2 laserCloudOutMsg; // 按scan排好的点云
     pcl::toROSMsg(*cloudByScans_ptr, laserCloudOutMsg);
     laserCloudOutMsg.header.stamp = pointCloudMsg_in->header.stamp;
     laserCloudOutMsg.header.frame_id = "/rslidar";
@@ -368,5 +404,4 @@ void LidarPreProcess::publish_point_cloud(const sensor_msgs::PointCloud2ConstPtr
             pubEachScan[i].publish(scanMsg);
         }
     }
-
 }
