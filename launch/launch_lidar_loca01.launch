@@ -1,15 +1,17 @@
 <launch>
     <node pkg="LidarLoca" type="lidar_process_node" name="lidar_process_node" output = "screen">
-        <remap from="/rslidar_points" to="/pandar128_points" />   
+        <!-- <remap from="/rslidar_points" to="/pandar128_points" />    -->
     </node>
     <node pkg="LidarLoca" type="lidar_odometry_node" name="lidar_odom_node" output = "screen"></node>
     <node pkg="LidarLoca" type="lidar_mapping_node" name="lidar_mapping_node" output = "screen"></node>
 
-    <node pkg="LidarLoca" type="result_evaluation" name="result_evaluation_node" output = "screen"></node>
+    <!-- <node pkg="LidarLoca" type="result_evaluation" name="result_evaluation_node" output = "screen"></node> -->
 
 
     <!-- rviz -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find LidarLoca)/cfg/lidar_loca.rviz" required="true"></node>
+    <!-- rqt_gui rqt_gui -->
 
+    <!-- <node name="rqt" pkg="rqt_gui" type="rqt_gui" required="true"></node> -->
 
 </launch>

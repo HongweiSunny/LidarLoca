@@ -462,13 +462,15 @@ void LidarMapping::get_cloud_from_cubes(int &centerCubeI, int &centerCubeJ, int 
 }
 ```
 
+
+
 ## 评估
 
 ```python
 evo_traj kitti KITTI_00_ORB.txt KITTI_00_SPTAM.txt --ref=KITTI_00_gt.txt -p --plot_mode=xz
 ```
 
-## TODO
+## Q
 
 * 为什么ｏｄｏｍ在特征关联的时候不能找同一个扫描的点
 

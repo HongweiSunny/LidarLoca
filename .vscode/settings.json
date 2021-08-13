@@ -68,7 +68,8 @@
         "typeinfo": "cpp",
         "dense": "cpp",
         "random": "cpp",
-        "geometry": "cpp"
+        "geometry": "cpp",
+        "__mutex_base": "cpp"
     },
     "python.autoComplete.extraPaths": [
         "/home/shw/ROScode/autoware_Sun/devel/lib/python2.7/dist-packages",

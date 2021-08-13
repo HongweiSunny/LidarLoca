@@ -181,7 +181,7 @@ public:
 public:
     LidarPreProcess() : lidarConf(32)
     {
-        topicSub_str = "/rslidar_points"; // /rslidar_points
+        topicSub_str = "/pandar128_points"; // /rslidar_points
 
         lidarSub = nh.subscribe(topicSub_str, 10, &LidarPreProcess::lidar_callback_func, this);
 

@@ -189,7 +189,7 @@ void LidarMapping::extend_cubes(int &centerCubeI, int &centerCubeJ, int &centerC
                             // 四周拓展cube（图中的黄色cube就是拓展的cube）时，index（即IJK坐标）成为负数。
     while (centerCubeI < 3) // 靠近边缘
     {
-        for (int j = 0; j < laserCloudHeight; j++)
+        for (int j = 0; j < laserCloudHeight; j++) // 另外两个维度
         {
             for (int k = 0; k < laserCloudDepth; k++)
             {
@@ -212,7 +212,7 @@ void LidarMapping::extend_cubes(int &centerCubeI, int &centerCubeJ, int &centerC
                     laserCloudCubeCornerPointer;
                 laserCloudSurfArray[i + laserCloudWidth * j + laserCloudWidth * laserCloudHeight * k] =
                     laserCloudCubeSurfPointer;
-                laserCloudCubeCornerPointer->clear();
+                laserCloudCubeCornerPointer->clear(); 
                 laserCloudCubeSurfPointer->clear();
             }
         }
@@ -421,7 +421,7 @@ void LidarMapping::get_cloud_from_cubes(int &centerCubeI, int &centerCubeJ, int 
 
 void LidarMapping::add_cloud_to_map()
 {
-    TicToc t_add;
+    // TicToc t_add;
     for (int i = 0; i < laserCloudCornerStackNum; i++)
     {
         pointAssociateToMap(&laserCloudCornerStack->points[i], &pointSel);
@@ -468,14 +468,14 @@ void LidarMapping::add_cloud_to_map()
             laserCloudSurfArray[cubeInd]->push_back(pointSel);
         }
     }
-    printf("add points time %f ms\n", t_add.toc());
+    // printf("add points time %f ms\n", t_add.toc());
 }
 
 void LidarMapping::downsample_cubes()
 {
     // 因为新增加了点云，对之前已经存有点云的cube全部重新进行一次降采样
     // 这个地方可以简单优化一下：如果之前的cube没有新添加点就不需要再降采样
-    TicToc t_filter;
+    // TicToc t_filter;
     for (int i = 0; i < laserCloudValidNum; i++)
     {
         int ind = laserCloudValidInd[i]; // get_cloud_from_map中被改变 存放了被取了点云的cube的坐标
@@ -490,12 +490,12 @@ void LidarMapping::downsample_cubes()
         downSizeFilterSurf.filter(*tmpSurf);
         laserCloudSurfArray[ind] = tmpSurf;
     }
-    printf("filter time %f ms \n", t_filter.toc());
+    // printf("filter time %f ms \n", t_filter.toc());
 }
 
 void LidarMapping::publish_result()
 {
-    TicToc t_pub;
+    // TicToc t_pub;
     //publish surround map for every 5 frame
     if (frameCount % 5 == 0)
     {
@@ -556,7 +556,7 @@ void LidarMapping::publish_result()
         pubLaserCloudFullRes.publish(laserCloudFullRes3);
     }
 
-    printf("mapping pub time %f ms \n", t_pub.toc());
+    // printf("mapping pub time %f ms \n", t_pub.toc());
 
     // 发布导航信息
         nav_msgs::Odometry odomAftMapped;

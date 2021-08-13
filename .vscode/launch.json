@@ -10,7 +10,7 @@
             "type": "cppdbg",
             "request": "launch",
             // lidar_odometry_node
-            "program": "/home/shw/catkin_ws_my/devel/lib/LidarLoca/lidar_mapping_node",
+            "program": "/home/nio/catkin_ws_my/devel/lib/LidarLoca/result_evaluation",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

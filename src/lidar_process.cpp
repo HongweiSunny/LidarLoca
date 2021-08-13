@@ -57,7 +57,7 @@ void LidarPreProcess::extract_line(pcl::PointCloud<PointXYZ> &cloudIn)
                                           // 　　cout << "清除vector后" << endl;
     // std::for_each(cloudScans.begin(), cloudScans.end(), [](pcl::PointCloud<PointType> v)
     //   { cout << v.points.size() << " "; });
-    cout << endl;
+    // cout << endl;
 
     // vector<int> vvv(10, 0);
     // for_each(vvv.begin(), vvv.end(), [](int it) { cout << it << endl; });
@@ -65,8 +65,8 @@ void LidarPreProcess::extract_line(pcl::PointCloud<PointXYZ> &cloudIn)
     uint cloudSize = cloudIn.size();
     double startOri = -atan2(cloudIn.points[0].y, cloudIn.points[0].x); // 为什么是负值
     double endOri = -atan2(cloudIn.points[cloudSize - 1].y, cloudIn.points[cloudSize - 1].x) + 2 * M_PI;
-    cout << "startOri: " << startOri << endl;
-    cout << "endOri: " << endOri << endl;
+    // cout << "startOri: " << startOri << endl;
+    // cout << "endOri: " << endOri << endl;
     if (endOri - startOri > 3 * M_PI)
     {
         endOri -= 2 * M_PI;
@@ -134,9 +134,9 @@ void LidarPreProcess::extract_line(pcl::PointCloud<PointXYZ> &cloudIn)
         double relTime = (ori - startOri) / (endOri - startOri); // 这个角度代表的是在旋转一圈的时候 该点对应的百分比
         if (isnan(relTime))
         {
-            cout << "NaN: "
-                 << "endOri" << endOri
-                 << "  startOri: " << startOri << endl;
+            // cout << "NaN: "
+                //  << "endOri" << endOri
+                //  << "  startOri: " << startOri << endl;
             ROS_WARN("NaN realtime!\n");
             continue;
         }
@@ -154,7 +154,7 @@ void LidarPreProcess::extract_feature()
     // pcl::PointCloud<PointType>::Ptr cloudByScans_ptr;
     if (cloudByScans_ptr->points.size() != 0)
         cloudByScans_ptr->points.clear();
-    cout << "提取特征前: " << cloudByScans_ptr->size() << endl;
+    // cout << "提取特征前: " << cloudByScans_ptr->size() << endl;
 
     int count = 0;
     for (int i = 0; i < lidarConf.get_num_scan(); i++) // 这个循环是在做什么?
@@ -164,9 +164,9 @@ void LidarPreProcess::extract_feature()
         count += cloudScans[i].size();
         scanEndInd[i] = cloudByScans_ptr->size() - 6;
     }
-    cout << "集合各个线后的点云大小：" << count << endl;
+    // cout << "集合各个线后的点云大小：" << count << endl;
     //
-    cout << " " << cloudByScans_ptr->size() << endl;
+    // cout << " " << cloudByScans_ptr->size() << endl;
 
     // 计算曲率
     int cloudSizeByScans = cloudByScans_ptr->size();
@@ -211,7 +211,7 @@ void LidarPreProcess::extract_feature()
                 if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] > 0.1)
                 { // 当前索引中的点没有被选中过，并且曲率足够大
                     largestPickedNum++;
-                    if (largestPickedNum <= 2) // 2
+                    if (largestPickedNum <= 2) // 2 10
                     {
                         cloudLabel[ind] = 2;                                            // 标记为２
                         cornerPointsSharp.push_back(cloudByScans_ptr->points[ind]);     // 每段最多放２个点进去
@@ -329,30 +329,48 @@ void LidarPreProcess::lidar_callback_func(const sensor_msgs::PointCloud2ConstPtr
     tcal.tic();
 
     pcl::fromROSMsg(*pointCloudMsg_in, cloudOri); //该函数的第二个形参只能是pointcloud形式
+
+    // --------------------------------------
+    // 加一个降采样器
+    // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filter(new pcl::PointCloud<pcl::PointXYZ>);
+    // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZ>);
+    // cloud_in = cloudOri.makeShared();
+	// pcl::VoxelGrid<pcl::PointXYZ> sor;
+	// sor.setInputCloud(cloud_in);
+    // float leafSize = 0.5;
+	// sor.setLeafSize(leafSize, leafSize, leafSize);
+	// sor.filter(*cloud_filter);
+
+    // cloudOri = *cloud_filter;
+
     std::vector<int> indices;
-    cout << "================\n*目前收到的时间戳： " << pointCloudMsg_in->header.stamp << endl;
+    // cout << "================\n*目前收到的时间戳： " << pointCloudMsg_in->header.stamp << endl;
     // cloudPreProcess.clear();
     // pcl::removeNaNFromPointCloud(cloudOri, cloudOri, indices);    // 先去掉NaN的点 is_dense的情况下不会滤去NaN的点...
     // cout << "是否dense: " << cloudOri.is_dense
     //      << endl;
     // dist_filter(cloudOri, cloudPreProcess);
-    cout << "原始点云的大小： " << cloudOri.size() << endl;
+    // cout << "原始点云的大小： " << cloudOri.size() << endl;
     removeClosedPointCloud(cloudOri, cloudOri, MINIMUM_RANGE); // 去掉比较近的点  仍然把点存在ori中
-    cout << "remove后点云的大小： " << cloudOri.size() << endl;
-    cout << tcal.toc() << endl;
+    // cout << "remove后点云的大小： " << cloudOri.size() << endl;
+    // cout << tcal.toc() << endl;
+
+
 
     // // 点云扫描分层
-    tcal.tic();
+    // tcal.tic();
     extract_line(cloudOri);
-    cout << tcal.toc() << " -扫描分层时间" << endl;
+    // cout << tcal.toc() << " -扫描分层时间" << endl;s
 
     // 特征点提取
-    tcal.tic();
+    // tcal.tic();
     extract_feature();
-    cout << "提取特征的时间： " << tcal.toc() << endl;
+    // cout << "提取特征的时间： " << tcal.toc() << endl;
 
     // 发布特征点点云
     publish_point_cloud(pointCloudMsg_in);
+    cout << "----process node: 点云预处理时间： " << tcal.toc() << endl;
+    
 }
 
 void LidarPreProcess::publish_point_cloud(const sensor_msgs::PointCloud2ConstPtr &pointCloudMsg_in)
@@ -388,7 +406,7 @@ void LidarPreProcess::publish_point_cloud(const sensor_msgs::PointCloud2ConstPtr
     pubSurfPointsLessFlat.publish(surfPointsLessFlat2);
 
     // // pub each scam
-    if (1)
+    /*if (1)
     {
         for (int i = 0; i < lidarConf.get_num_scan(); i++)
         {
@@ -403,5 +421,5 @@ void LidarPreProcess::publish_point_cloud(const sensor_msgs::PointCloud2ConstPtr
             scanMsg.header.frame_id = "/rslidar";
             pubEachScan[i].publish(scanMsg);
         }
-    }
+    }*/
 }

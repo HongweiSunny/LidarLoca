@@ -51,8 +51,8 @@ class LidarOdom
         double timeLaserCloudFullRes = 0;
         double SCAN_PERIOD = 0.1;
         double DISTANCE_SQ_THRESHOLD = 25;
-        double NEARBY_SCAN = 2.5;  // 常量表达式 在编译的时候就会直接替代
-        bool DISTORTION = true;
+        double NEARBY_SCAN = 2.5;  
+        bool DISTORTION = false;
 
         pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeCornerLast;
         pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeSurfLast;
@@ -108,7 +108,7 @@ class LidarOdom
         ros::Subscriber subLaserCloudFullRes;
         void laserCloudFullResHandler(const sensor_msgs::PointCloud2ConstPtr &);
 
-        // 发布器
+        // 发布器 5个发布器  三个点云和path的发布器按照是否有订阅者决定是否发布
         ros::Publisher pubLaserCloudCornerLast;
 
         ros::Publisher pubLaserCloudSurfLast;

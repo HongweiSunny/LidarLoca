@@ -57,7 +57,7 @@ void LidarMapping::process()
             // 用维护的map_odom * odom_curr　得到map_curr
             transformAssociateToMap(); 
 
-            TicToc t_shift;
+            // TicToc t_shift;
             // 下面这是计算当前帧位置t_w_curr（在上图中用红色五角星表示的位置）IJK坐标（见上图中的坐标轴），
             // 参照LOAM_NOTED的注释，下面有关25呀，50啥的运算，等效于以50m为单位进行缩放，因为LOAM用1维数组
             // 进行cube的管理，而数组的index只用是正数，所以要保证IJK坐标都是正数，所以加了laserCloudCenWidth/Heigh/Depth
@@ -79,6 +79,7 @@ void LidarMapping::process()
             if (t_w_curr.z() + 25.0 < 0)
                 centerCubeK--;
 
+            // 如果现在的lidar处在的cube接近于大地图的边缘,则删除旧的数据,
             extend_cubes(centerCubeI, centerCubeJ, centerCubeK);
 
             get_cloud_from_cubes(centerCubeI, centerCubeJ, centerCubeK);
@@ -94,11 +95,11 @@ void LidarMapping::process()
             // 优化
             if (laserCloudCornerFromMapNum > 10 && laserCloudSurfFromMapNum > 50)
             {
-                TicToc t_opt;
-                TicToc t_tree;
+                // TicToc t_opt;
+                // TicToc t_tree;
                 kdtreeCornerFromMap->setInputCloud(laserCloudCornerFromMap);
                 kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMap);
-                printf("build tree time %f ms \n", t_tree.toc());
+                // printf("build tree time %f ms \n", t_tree.toc());
 
                 for (int iterCount = 0; iterCount < 2; iterCount++)
                 {
@@ -112,7 +113,7 @@ void LidarMapping::process()
                     problem.AddParameterBlock(parameters, 4, q_parameterization);
                     problem.AddParameterBlock(parameters + 4, 3);
 
-                    TicToc t_data;
+                    // TicToc t_data;
                     int corner_num = 0;
 
                     for (int i = 0; i < laserCloudCornerStackNum; i++)
@@ -255,9 +256,9 @@ void LidarMapping::process()
                     //printf("corner num %d used corner num %d \n", laserCloudCornerStackNum, corner_num);
                     //printf("surf num %d used surf num %d \n", laserCloudSurfStackNum, surf_num);
 
-                    printf("mapping data assosiation time %f ms \n", t_data.toc());
+                    // printf("mapping data assosiation time %f ms \n", t_data.toc());
 
-                    TicToc t_solver;
+                    // TicToc t_solver;
                     ceres::Solver::Options options;
                     options.linear_solver_type = ceres::DENSE_QR;
                     options.max_num_iterations = 4;
@@ -266,14 +267,14 @@ void LidarMapping::process()
                     options.gradient_check_relative_precision = 1e-4;
                     ceres::Solver::Summary summary;
                     ceres::Solve(options, &problem, &summary);
-                    printf("mapping solver time %f ms \n", t_solver.toc());
+                    // printf("mapping solver time %f ms \n", t_solver.toc());
 
                     //printf("time %f \n", timeLaserOdometry);
                     //printf("corner factor num %d surf factor num %d\n", corner_num, surf_num);
                     //printf("result q %f %f %f %f result t %f %f %f\n", parameters[3], parameters[0], parameters[1], parameters[2],
                     //	   parameters[4], parameters[5], parameters[6]);
                 }
-                printf("mapping optimization time %f \n", t_opt.toc());
+                // printf("mapping optimization time %f \n", t_opt.toc());
             }
             else
             {
@@ -291,7 +292,7 @@ void LidarMapping::process()
 
             publish_result();
             
-            printf("whole mapping time %f ms +++++\n", t_whole.toc());
+            printf("++++ Map node: whole mapping time %f ms +++++\n", t_whole.toc());
         }
         std::chrono::milliseconds dura(2);
         std::this_thread::sleep_for(dura); // 睡眠两毫秒

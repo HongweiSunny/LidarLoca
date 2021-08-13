@@ -5,14 +5,14 @@ project(LidarLoca)
 set(CMAKE_CXX_FLAGS "-std=c++11")
 
 # 不调试的时候打开下面
-# set(CMAKE_BUILD_TYPE "Release")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ") # -g
-set (CMAKE_VERBOSE_MAKEFILE ON)
+# set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ") # -g
+# set (CMAKE_VERBOSE_MAKEFILE ON)
 
 # 调试的时候打开下面
-set(CMAKE_BUILD_TYPE "Release")    # 调式开关
+# set(CMAKE_BUILD_TYPE "Releases")    # 调式开关
 
 IF (CMAKE_BUILD_TYPE STREQUAL Debug)     #   用IF控制，可以实现Release版本不输出debug信息
     ADD_DEFINITIONS(-DDEBUG)             #               不知道为什么DEBUG必须写成-DDEBUG，谁来解释一下吧
@@ -115,6 +115,6 @@ target_link_libraries( result_evaluation   ${catkin_LIBRARIES} ${PCL_LIBRARIES} 
 
 
 # add_subdirectory(benchmark) benchmark/
-add_executable(evaluation evaluation.cpp ${catkin_INCLUDE_DIRS})
+add_executable(evaluation benchmark/evaluation.cpp ${catkin_INCLUDE_DIRS})
 target_link_libraries(evaluation ${catkin_LIBRARIES})
 

@@ -63,7 +63,7 @@ void LidarOdom::synchronization_check()
 void LidarOdom::copy_feature_point_clout()
 {
     std::lock_guard<std::mutex> lockGuard(mBuf);
-    cout<<"================\n*目前收到的时间戳： "<<cornerSharpBuf.front()->header.stamp<<endl;
+    // cout<<"================\n*目前收到的时间戳： "<<cornerSharpBuf.front()->header.stamp<<endl;
     cornerPointsSharp->clear();
     pcl::fromROSMsg(*cornerSharpBuf.front(), *cornerPointsSharp);
     cornerSharpBuf.pop();
@@ -87,7 +87,7 @@ void LidarOdom::spin_once()
     // 1.1 缓冲区非空检测
     if (!notempty_check())
     {
-        rate.sleep();
+        rate.sleep(); // 10 Hz
         return;
     }
     //　1.2 同步检测
@@ -107,10 +107,10 @@ void LidarOdom::spin_once()
     }
     else
     {
-        cout << "nlp 优化求解\n";
+        // cout << "nlp 优化求解\n";
         calculate_pose_nlp(); //上一次计算出来的结果作为初值
     }
-    cout << "总时间： " << t_whole.toc() << " ms " << endl;
+    // cout << "**** odom node: 总时间： " << t_whole.toc() << " ms " << endl;
     // 超时警告信息
     if (t_whole.toc() > 100)
     {
@@ -128,7 +128,7 @@ void LidarOdom::spin_once()
 // 3.1 NLP 优化函数
 void LidarOdom::calculate_pose_nlp()
 {
-    TicToc t_opt;
+    // TicToc t_opt;
     // 最大迭代次数是２次
     for (size_t opti_counter = 0; opti_counter < MAX_ITERATION; ++opti_counter)
     {
@@ -150,14 +150,14 @@ void LidarOdom::calculate_pose_nlp()
         std::vector<int> pointSearchInd;
         std::vector<float> pointSearchSqDis;
 
-        TicToc t_data;
+        // TicToc t_data;
         // find correspondence for corner features
         int cornerPointsSharpNum = cornerPointsSharp->points.size();
         // 1. sharp点找关联线
         for (int i = 0; i < cornerPointsSharpNum; ++i)
         { // 每个点都找上一帧中相关联的特征点 加入ceres的残差块
             // cout << cornerPointsSharp->points[i].intensity << endl;
-            TransformToStart(&(cornerPointsSharp->points[i]), &pointSel);
+            TransformToStart(&(cornerPointsSharp->points[i]), &pointSel);                    // 为什么这里去了一个点的畸变？
             kdtreeCornerLast->nearestKSearch(pointSel, 1, pointSearchInd, pointSearchSqDis); // 找到距离最近的点
 
             int closestPointInd = -1, minPointInd2 = -1;
@@ -348,24 +348,24 @@ void LidarOdom::calculate_pose_nlp()
             }
         }
 
-        printf("coner_correspondance %d, plane_correspondence %d \n", corner_correspondence, plane_correspondence);
-        printf("data association time %f ms \n", t_data.toc());
+        // printf("coner_correspondance %d, plane_correspondence %d \n", corner_correspondence, plane_correspondence);
+        // printf("data association time %f ms \n", t_data.toc());
 
         if ((corner_correspondence + plane_correspondence) < 10)
         {
             printf("less correspondence! *************************************************\n");
         }
 
-        TicToc t_solver;
+        // TicToc t_solver;
         ceres::Solver::Options options;
         options.linear_solver_type = ceres::DENSE_QR;
         options.max_num_iterations = 4;
         options.minimizer_progress_to_stdout = false;
         ceres::Solver::Summary summary;
         ceres::Solve(options, &problem, &summary);
-        printf("solver time %f ms \n", t_solver.toc());
+        // printf("solver time %f ms \n", t_solver.toc());
     }
-    printf("MAX_ITRATION- %d : optimization twice time %f \n", MAX_ITERATION, t_opt.toc());
+    // printf("MAX_ITRATION- %d : optimization twice time %f \n", MAX_ITERATION, t_opt.toc());
 
     t_w_curr = t_w_curr + q_w_curr * t_last_curr; // 认为现在 旋转上没变化 t_last_curr 是两帧之间的变化，q*t得到的是增量在w坐标系下的投影表示
     q_w_curr = q_w_curr * q_last_curr;            //再去更新旋转
@@ -377,8 +377,8 @@ void LidarOdom::after_process()
 {
     // 交换了点，last的变成队列中最前面的  用于更新Kd树
     pcl::PointCloud<PointType>::Ptr laserCloudTemp = cornerPointsLessSharp;
-    cornerPointsLessSharp = laserCloudCornerLast; // 都是less的
-    laserCloudCornerLast = laserCloudTemp;
+    cornerPointsLessSharp = laserCloudCornerLast; // 都是less的 在copy点云的函数中会被clear()
+    laserCloudCornerLast = laserCloudTemp;        // kdtree中的点云更新为当前被处理的这帧点云, 为下一次配对做准备
 
     laserCloudTemp = surfPointsLessFlat;
     surfPointsLessFlat = laserCloudSurfLast;
@@ -392,6 +392,7 @@ void LidarOdom::after_process()
     std::vector<int> indices;
     pcl::removeNaNFromPointCloud(*laserCloudCornerLast, *laserCloudCornerLast, indices);
     kdtreeCornerLast->setInputCloud(laserCloudCornerLast);
+
     std::vector<int> indices2;
     pcl::removeNaNFromPointCloud(*laserCloudSurfLast, *laserCloudSurfLast, indices2);
     kdtreeSurfLast->setInputCloud(laserCloudSurfLast);
@@ -399,7 +400,6 @@ void LidarOdom::after_process()
     // printf("publication time %f ms \n", t_pub.toc());
     // printf("whole laserOdometry time %f ms \n \n", t_whole.toc());
 
-    
 } // end of func
 
 void LidarOdom::pub_result()
@@ -424,7 +424,8 @@ void LidarOdom::pub_result()
     laserPath.header.stamp = laserOdometry.header.stamp;
     laserPath.poses.push_back(laserPose);
     laserPath.header.frame_id = "/odom";
-    pubLaserPath.publish(laserPath);
+    if(pubLaserPath.getNumSubscribers() > 0)
+        pubLaserPath.publish(laserPath);
 
     // 下面是为建图节点提供输入
     if (frameCount % skipFrameNum == 0) // skip 参数给的1，也就是每次都会发送给第三个节点，如果给的是2的话，后面建图的频率就会是5Hz
@@ -434,19 +435,24 @@ void LidarOdom::pub_result()
         pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2); // 发布此时的上一帧点云 其实就是发布刚刚获取到的队列中的特征
         laserCloudCornerLast2.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
         laserCloudCornerLast2.header.frame_id = "/rslidar"; // 2代表现在做odom的时候用的less corner特征
-        pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
+
+        if (pubLaserCloudCornerLast.getNumSubscribers() > 0) // 有订阅者才发
+            pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
 
         sensor_msgs::PointCloud2 laserCloudSurfLast2;
         pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
         laserCloudSurfLast2.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
         laserCloudSurfLast2.header.frame_id = "/rslidar";
-        pubLaserCloudSurfLast.publish(laserCloudSurfLast2); // 2代表现在做odom的时候用的less surf特征
+
+        if (pubLaserCloudSurfLast.getNumSubscribers() > 0)
+            pubLaserCloudSurfLast.publish(laserCloudSurfLast2); // 2代表现在做odom的时候用的less surf特征
 
         sensor_msgs::PointCloud2 laserCloudFullRes3; // 给第三个节点的被scan register处理后的全部点云
         pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
         laserCloudFullRes3.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
         laserCloudFullRes3.header.frame_id = "/rslidar";
-        pubLaserCloudFullRes.publish(laserCloudFullRes3);
+        if(pubLaserCloudFullRes.getNumSubscribers() > 0)
+            pubLaserCloudFullRes.publish(laserCloudFullRes3);
     }
     frameCount++;
 } // end of func
@@ -493,9 +499,9 @@ void LidarOdom::TransformToEnd(PointType const *const pi, PointType *const po)
 
 void LidarOdom::process()
 {
-    cout<<"============="<<endl;
-    cout<<"enter into process thread of odom!";
-    while(1)
+    cout << "=============" << endl;
+    cout << "enter into process thread of odom!";
+    while (1)
     {
         spin_once();
     }
